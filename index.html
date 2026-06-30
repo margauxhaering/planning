@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Planning Hebdomadaire</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="css/main.css" rel="stylesheet">
+<script src="js/main.js" defer></script>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Planning interne</div>
+  <h1>Tu fais quoi de ta semaine ?</h1>
+  <p>Importez le PDF hebdomadaire et recherchez un nom pour voir ses affectations.</p>
+</header>
+<div class="card">
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".pdf"/>
+    <div class="upload-icon">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <div class="lbl">Glissez le PDF ici ou cliquez pour parcourir</div>
+    <div class="sub">Fichier PDF du planning hebdomadaire</div>
+  </div>
+  <div class="file-badge" id="fileBadge">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="fileName">—</span>
+  </div>
+  <div class="week-info" id="weekInfo">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    <span id="weekLabel">—</span>
+  </div>
+  <div class="search-row">
+    <input type="text" id="nameInput" placeholder="Nom à rechercher (si accent, tout écrire en maj)" autocomplete="off"/>
+    <button id="searchBtn" disabled>Rechercher</button>
+  </div>
+  <div id="status">
+    <div class="spinner" id="spinner"></div>
+    <span id="statusMsg">Importez un PDF pour commencer.</span>
+  </div>
+</div>
+<div id="results"></div>
+</body>
+</html>
