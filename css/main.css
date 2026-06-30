@@ -1,4 +1,5 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{max-width:100vw;overflow-x:hidden}
 :root{
   --bg:#D1E1EB;--surface:#2B2E4D;--border:#2A2D35;
   --text:#08263B;--text2:#D1E1EB;--muted:#6B7280;--accent:#4A90D9;--accent2:#2563B0;
@@ -11,6 +12,10 @@ header .eyebrow{font-size:11px;font-weight:600;letter-spacing:.16em;text-transfo
 header h1{font-size:clamp(26px,4vw,38px);font-weight:700;letter-spacing:-.02em}
 header p{margin-top:8px;color:var(--muted);font-size:14px}
 .card{width:100%;max-width:640px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px}
+@media(max-width:480px){
+  .card{padding:20px 16px}
+  body{padding:24px 12px 60px}
+}
 .upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:32px 20px;
   text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(74,144,217,.05)}
@@ -29,6 +34,10 @@ header p{margin-top:8px;color:var(--muted);font-size:14px}
   font-size:13px;color:var(--accent)}
 .week-info.visible{display:flex}
 .search-row{display:flex;gap:10px;margin-top:22px}
+@media(max-width:480px){
+  .search-row{flex-direction:column}
+  .search-row button{width:100%}
+}
 .search-row input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
   padding:11px 15px;font-size:14px;color:var(--text);font-family:inherit;outline:none;transition:border-color .2s}
 .search-row input::placeholder{color:var(--muted)}
