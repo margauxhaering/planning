@@ -14,7 +14,8 @@ const DEFAULT_BOUNDS = [
 ];
 const SKIP_SVC = new Set(['SERVICES','EFFECTIF','SEMAINE',
   'LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI','DIMANCHE']);
-const CONGES_KEYWORDS = ['conge','ferie','repos','journee','recuperation','recup', 'administratifs', 'exceptionnels'];
+const CONGES_KEYWORDS = ['conges', 'administratifs', 'exceptionnels','conge','ferie','repos','journee','recuperation','recup'];
+const ARRET_KEYWORDS = ['personnels', 'indisponibles'];
 
 const SINGLE_LINE_SERVICES = new Set([
   'GRADE MONEGHETTI', 'GRADE CASERNE DU PALAIS', 'FACTOTUM',
@@ -67,7 +68,8 @@ function getCol(x, bounds){
 
 function normalizeService(svc){
   const low = svc.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  if(CONGES_KEYWORDS.some(k => low.includes(k))) return 'REPOS';
+  if(CONGES_KEYWORDS.some(k => low.includes(k))) return 'CONGES';
+  if(ARRET_KEYWORDS.some(k => low.includes(k))) return 'ARRET';
   return svc;
 }
 
@@ -104,12 +106,17 @@ async function extractPageData(page, yOffset){
     } else if(fn === OPS.showText){
       const glyphs = args[0];
       let text = '';
+      let totalGlyphWidth = 0;
       for(const g of glyphs){
-        if(typeof g === 'object' && g.unicode !== undefined) text += g.unicode;
+        if(typeof g === 'object' && g.unicode !== undefined){
+          text += g.unicode;
+          totalGlyphWidth += (g.width || 0);
+        }
       }
       if(text.trim()){
         const [px, py] = applyMatrix(textMatrix, 0, 0);
-        fragments.push({ text, x: px, y: (H - py) + yOffset });
+        const pxWidth = totalGlyphWidth * Math.abs(textMatrix[0]) / 1000;
+        fragments.push({ text, x: px, y: (H - py) + yOffset, pxWidth });
       }
     } else if(fn === OPS.constructPath){
       const [pathOps, pathArgs] = args;
@@ -142,12 +149,15 @@ async function extractPageData(page, yOffset){
 function splitFragmentIntoWords(frag){
   const parts = frag.text.split(/(\s+)/).filter(s=>s.length);
   if(parts.length<=1) return [{text:frag.text.trim(), x:frag.x}];
+  // Use real pixel width if available, fall back to a reasonable approximation
+  const charW = frag.pxWidth && frag.text.length > 0
+    ? frag.pxWidth / frag.text.length
+    : 9;
   let cx = frag.x;
   const out = [];
-  const approxCharW = 9;
   for(const part of parts){
     if(part.trim()) out.push({text:part, x:cx});
-    cx += part.length * approxCharW;
+    cx += part.length * charW;
   }
   return out;
 }
@@ -158,7 +168,7 @@ function extractNames(wordList){
   while(i<wordList.length){
     const w = wordList[i];
     const t = w.text.trim();
-    if(/^[A-ZÉÀÈÊËÎÏÔÙÛÜ][A-ZÉÀÈÊËÎÏÔÙÛÜa-zéàèêëîïôùûü\-]+$/.test(t) && t.length>=2){
+    if(/^[A-ZÉÀÈÊÎÏÔÙÛÜ][A-ZÉÀÈÊÎÏÔÙÛÜa-zéàèêîïôùûü\-]+$/.test(t) && t.length>=2){
       const next = wordList[i+1];
       if(next && /^[A-Z]\.$/.test(next.text.trim())){
         results.push({name: t+' '+next.text.trim()});
@@ -183,7 +193,7 @@ async function handleFile(file){
     const ab  = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({data: ab}).promise;
 
-  const PAGE_GAP = 50;
+    const PAGE_GAP = 50;
     let yCursor = 0;
     let allFragments = [];
     let allRects = [];
@@ -267,6 +277,7 @@ async function handleFile(file){
       weekInfo.classList.add('visible');
     }
 
+
     const svcLabelEntries = [];
     for(const {y, cols} of structured){
       if(!cols['SERVICES']) continue;
@@ -276,7 +287,7 @@ async function handleFile(file){
         svcLabelEntries.push({
           y, text: rowText,
           blockColor: block ? block.color : null,
-          blockYRef:  block ? block.y0    : y,
+          blockYRef:  block ? Math.round(block.y0) : y,
         });
       }
     }
@@ -285,8 +296,7 @@ async function handleFile(file){
     const labelGroups = [];
     let cur = null;
     for(const e of svcLabelEntries){
-      const sameBlock = cur && e.blockColor === cur.blockColor && e.blockYRef === cur.blockYRef;
-      const closeGap  = cur && (e.y - cur.yEnd) < 20;
+      const sameBlock = cur && e.blockColor === cur.blockColor && e.blockYRef === cur.blockYRef;      const closeGap  = cur && (e.y - cur.yEnd) < 20;
       const curIsSingleLine = cur && isSingleLineService(cur.texts[cur.texts.length-1]);
       const eIsSingleLine   = isSingleLineService(e.text);
       if(cur && sameBlock && closeGap && !curIsSingleLine && !eIsSingleLine){
@@ -306,7 +316,7 @@ async function handleFile(file){
         curG.label = 'Congés';
       }
     }
-
+/// condition sur le montante suivi d'un descendante et vice versa
     let palaisGardeNextIsDescendante = false;
     for(let i=0; i<labelGroups.length; i++){
       const g = labelGroups[i];
@@ -324,7 +334,7 @@ async function handleFile(file){
     function findServiceForName(nameY){
       const block = colorBlockForY(nameY);
       const blockColor = block ? block.color : null;
-      const blockYRef  = block ? block.y0    : null;
+      const blockYRef  = block ? Math.round(block.y0) : null;
       let candidates = labelGroups.filter(g => g.blockColor === blockColor && g.blockYRef === blockYRef);
       if(!candidates.length) candidates = labelGroups;
       if(!candidates.length) return null;
@@ -385,17 +395,24 @@ async function handleFile(file){
   }
 }
 
+function normalizeSearchText(s){
+  return s
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 function doSearch(){
   if(!nameIndex) return;
   const raw   = nameInput.value.trim();
-  const query = raw.toUpperCase();
-  if(!query){ setStatus('Entrez un nom à rechercher.','error'); return; }
+  const query = normalizeSearchText(raw);
+  if(!query){ setStatus('Entre un nom à rechercher.','error'); return; }
 
   const byDay = {};
   for(const day of DAYS) byDay[day] = new Set();
 
   for(const [storedName, dayMap] of nameIndex){
-    if(!storedName.includes(query)) continue;
+    if(!normalizeSearchText(storedName).includes(query)) continue;
     for(const [day, svcSet] of dayMap){
       for(const svc of svcSet) byDay[day].add(svc);
     }
@@ -409,7 +426,7 @@ function doSearch(){
       <div class="no-result">
         <div class="big">🔍</div>
         <p>Aucun résultat pour <strong>"${esc(raw)}"</strong>.<br/>
-        Vérifiez l'orthographe ou essayez une partie du nom.</p>
+        Vérifie l'orthographe stp.</p>
       </div>`;
     return;
   }
