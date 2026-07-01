@@ -68,7 +68,7 @@ function getCol(x, bounds){
 
 function normalizeService(svc){
   const low = svc.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  if(CONGES_KEYWORDS.some(k => low.includes(k))) return 'CONGES';
+  if(CONGES_KEYWORDS.some(k => low.includes(k))) return 'REPOS';
   if(ARRET_KEYWORDS.some(k => low.includes(k))) return 'ARRET';
   return svc;
 }
@@ -168,7 +168,7 @@ function extractNames(wordList){
   while(i<wordList.length){
     const w = wordList[i];
     const t = w.text.trim();
-    if(/^[A-ZÉÀÈÊÎÏÔÙÛÜ][A-ZÉÀÈÊÎÏÔÙÛÜa-zéàèêîïôùûü\-]+$/.test(t) && t.length>=2){
+    if(/^[A-ZÉÀÈÊEËÎÏÔÙÛÜ][A-ZÉÀÈÊËÎÏÔÙÛÜa-zéàèêëîïôùûü\-]+$/.test(t) && t.length>=2){
       const next = wordList[i+1];
       if(next && /^[A-Z]\.$/.test(next.text.trim())){
         results.push({name: t+' '+next.text.trim()});
